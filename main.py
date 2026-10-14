@@ -6,9 +6,8 @@ from pydantic import BaseModel
 
 
 class WordEnrichment(BaseModel):
-    examples: list[str]
-    part_of_speech: str
-    usage_note: str
+    translation: str
+    description: str
 
 def build_client() -> OpenAI:
     load_dotenv()
@@ -20,15 +19,20 @@ def build_client() -> OpenAI:
     return OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
 SYSTEM_PROMPT = (
-    "You are a vocabulary enrichment assistant for a language-learning app. "
-    "Given a word and a source/target language pair, mentally translate the word "
-    "and produce a short enrichment about its use in the target language. "
-    "Respond with nothing but a single raw JSON object — no markdown, no code fences, no extra text. "
-    "The JSON object must contain exactly these fields and nothing else:\n"
-    "  \"examples\": an array of 2 to 3 short example sentences in the target language, "
-    "each naturally using the word's translation\n"
-    "  \"part_of_speech\": a single lowercase word, e.g. \"noun\", \"verb\", \"adjective\", \"adverb\"\n"
-    "  \"usage_note\": one short sentence (under 20 words) about register, common context, or a usage tip"
+    "You are a vocabulary translation assistant for a language-learning app. "
+    "Given a word in its source language and a target language, translate "
+    "the word into the target language and write a short description that "
+    "helps a learner use the translated word correctly. "
+    "Write the description in the TARGET language. "
+    "Respond with nothing but a single raw JSON object — no markdown, no code "
+    "fences, no extra text. The JSON object must contain exactly these fields "
+    "and nothing else:\n"
+    "  \"translation\": the word translated into the target language — a "
+    "single word or short phrase, not a full sentence\n"
+    "  \"description\": one to two short sentences, written in the target "
+    "language, explaining the meaning, nuance, or typical usage context of "
+    "the translated word (formality, common contexts, false-friend warnings, "
+    "etc.)"
 )
 
 
@@ -37,7 +41,7 @@ def build_user_prompt(word: str, source_language: str, target_language: str) -> 
         f"Word: \"{word}\"\n"
         f"Source language: {source_language}\n"
         f"Target language: {target_language}\n"
-        "Produce the enrichment JSON described above for this word's translation into the target language."
+        "Produce the translation and description JSON described above."
     )
 
 def enrich_word(client: OpenAI, word: str, source_language: str, target_language: str) -> WordEnrichment:
