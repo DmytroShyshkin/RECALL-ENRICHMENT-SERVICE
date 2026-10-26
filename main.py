@@ -1,11 +1,9 @@
-from asyncio.log import logger
-from dataclasses import Field
 import os
 import logging
 
 from dotenv import load_dotenv
 from openai import OpenAI
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 
 class WordEnrichment(BaseModel):
