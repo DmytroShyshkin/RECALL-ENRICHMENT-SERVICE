@@ -1,7 +1,7 @@
 import os
 import logging
+import boto3
 
-from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 
@@ -11,8 +11,7 @@ class WordEnrichment(BaseModel):
     description: str = Field(min_length=1)
 
 def build_client() -> OpenAI:
-    load_dotenv()
-    api_key = os.environ["GROQ_API_KEY"]
+    api_key = get_groq_api_key()
 
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is not set")
@@ -26,6 +25,7 @@ def build_client() -> OpenAI:
 MAX_VALIDATION_ATTEMPTS=3
 logger = logging.getLogger(__name__)
 
+SSM_PARAMETER_NAME = "/recall-enrichment-service/GROQ_API_KEY"
 SYSTEM_PROMPT = (
     "You are a vocabulary translation assistant for a language-learning app. "
     "Given a word in its source language and a target language, translate "
@@ -42,6 +42,12 @@ SYSTEM_PROMPT = (
     "the translated word (formality, common contexts, false-friend warnings, "
     "etc.)"
 )
+
+def get_groq_api_key() -> str:
+    """Retrieve the Groq API key from AWS SSM Parameter Store."""
+    ssm_client = boto3.client("ssm", region_name="eu-central-1")
+    response = ssm_client.get_parameter(Name=SSM_PARAMETER_NAME, WithDecryption=True)
+    return response["Parameter"]["Value"]
 
 class EnrichmentValidationError(Exception):
     """Raised when Groq returns a 200 response whose content doesn't pass
