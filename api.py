@@ -1,12 +1,13 @@
 # api.py
 from fastapi import FastAPI, HTTPException
-from openai import APIConnectionError, APIError
+from openai import APIConnectionError, APIError, RateLimitError
 from pydantic import BaseModel
 
 import main
 
 app = FastAPI()
 client = main.build_client()
+provider: main.EnrichmentProvider = main.GroqProvider(client)
 
 
 class EnrichmentRequest(BaseModel):
@@ -23,9 +24,11 @@ class EnrichmentResponse(BaseModel):
 @app.post("/enrich", response_model=EnrichmentResponse)
 def enrich(request: EnrichmentRequest) -> EnrichmentResponse:
     try:
-        result = main.enrich_word(client, request.word, request.source_language, request.target_language)
+        result = provider.enrich(request.word, request.source_language, request.target_language)
     except main.EnrichmentValidationError as e:
         raise HTTPException(status_code=502, detail=str(e))
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
     except APIConnectionError:
         raise HTTPException(status_code=503, detail="Service unavailable. Please try again later.")
     except APIError as e:
