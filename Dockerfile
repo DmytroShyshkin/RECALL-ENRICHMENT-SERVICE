@@ -15,4 +15,7 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render injects PORT (default 10000) and expects the app to bind to it;
+# shell form (not exec form) is required for ${PORT} to expand.
+# Local docker run without -e PORT falls back to 8000.
+CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}
